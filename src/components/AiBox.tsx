@@ -1,0 +1,60 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { streamAi } from "@/lib/ai-client";
+import type { AiModeId } from "@/lib/ai-modes";
+import { Markdown } from "./Markdown";
+
+/** Bouton « demander à l'IA » réutilisable (explication d'un mot, d'un proverbe, dialogue de secteur…). */
+export function AiBox({
+  mode,
+  input,
+  sector,
+  label,
+}: {
+  mode: AiModeId;
+  input: string;
+  sector?: string;
+  label: string;
+}) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const ctrl = useRef<AbortController | null>(null);
+
+  async function run() {
+    ctrl.current?.abort();
+    ctrl.current = new AbortController();
+    setBusy(true);
+    setErr(null);
+    setText("");
+    try {
+      await streamAi({ mode, input, sector }, setText, ctrl.current.signal);
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="stack">
+      <div className="row no-print">
+        <button className="btn btn-primary" onClick={run} disabled={busy}>
+          ✨ {busy ? "L'IA réfléchit…" : label}
+        </button>
+        {busy && (
+          <button className="btn btn-ghost" onClick={() => ctrl.current?.abort()}>
+            Arrêter
+          </button>
+        )}
+      </div>
+      {err && <div className="notice err">{err}</div>}
+      {(text || busy) && (
+        <div className={`card ${busy ? "typing" : ""}`}>
+          <Markdown text={text || "…"} />
+        </div>
+      )}
+    </div>
+  );
+}
