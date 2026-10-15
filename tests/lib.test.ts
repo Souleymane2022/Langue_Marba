@@ -131,3 +131,20 @@ test("IA : préparation des demandes, quel que soit le fournisseur", () => {
   const single = prepareRequest(ctx, { mode: "traduire-fr", input: "eau", history: [{ role: "user", content: "x" }] });
   assert.ok(single.ok && single.messages.length === 1);
 });
+
+test("voix : texte prêt à être lu, découpage et fichier WAV", async () => {
+  const { speechText, chunkText, pcmToWav } = await import("../src/lib/speech-text.ts");
+  const md = "### Traduction\n**Aca** = femme 🟢 élevé\n- **An** → je\n📖 Mots du dictionnaire utilisés : Aca, An";
+  const t = speechText(md);
+  assert.equal(t, "Traduction.\nAca : femme confiance élevée.\nAn : je.");
+  assert.ok(!/[*#📖🟢]/u.test(t));
+  const long = Array.from({ length: 60 }, (_, i) => `Phrase numéro ${i} assez longue pour remplir le texte.`).join(" ");
+  const chunks = chunkText(long, 500);
+  assert.ok(chunks.length > 3 && chunks.every((c) => c.length <= 500));
+  assert.equal(chunks.join(" ").replace(/\s+/g, " "), long);
+  const wav = pcmToWav(new Uint8Array(48000), 24000);
+  assert.equal(wav.size, 48044);
+  assert.equal(wav.type, "audio/wav");
+  const head = new Uint8Array(await wav.slice(0, 4).arrayBuffer());
+  assert.equal(String.fromCharCode(...head), "RIFF");
+});

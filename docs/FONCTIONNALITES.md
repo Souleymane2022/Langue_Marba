@@ -82,6 +82,14 @@ Fournisseurs :
 - ✅ **Gemini (Google) avec une clé gratuite** saisie par l'utilisateur : fonctionne directement depuis le téléphone, même sur GitHub Pages
 - ✅ Gemini ou Claude (Anthropic) côté serveur, avec la clé du propriétaire du site
 
+Voix :
+- ✅ **L'assistant parle** : voix neuronale naturelle de Gemini (8 voix posées au choix), lecture fluide des longues réponses
+- ✅ **On lui parle** : dictée au micro (🎙️), en français
+- ✅ **Mode vocal** : question dictée envoyée automatiquement, réponse lue automatiquement
+- ✅ Vitesse de lecture réglable (lente pour l'apprentissage)
+- ✅ Voix du téléphone en secours (sans clé, ou quota vocal gratuit épuisé)
+- 🔜 Prononciation exacte du Marba : nécessite des enregistrements de locuteurs natifs (corpus en cours de collecte via « Contribuer »)
+
 Garde-fous :
 - ✅ Le lexique complet (2 230 mots) est fourni au modèle à chaque requête (mis en cache), plus les fiches et phrases authentiques les plus pertinentes
 - ✅ Interdiction d'inventer des mots ; les phrases non attestées sont signalées ⚠️

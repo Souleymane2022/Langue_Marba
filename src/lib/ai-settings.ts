@@ -10,13 +10,21 @@ import { useSyncExternalStore } from "react";
 export interface AiSettings {
   geminiKey: string;
   geminiModel: string;
+  /** voix Gemini (ex. « Charon ») */
+  voiceName: string;
+  /** modèle de synthèse vocale choisi ("" = automatique) */
+  ttsModel: string;
+  /** vitesse de lecture (0.8 à 1.2) */
+  speechRate: number;
+  /** mode vocal : lire automatiquement les réponses et envoyer après la dictée */
+  autoSpeak: boolean;
 }
 
 /** Alias maintenu par Google : pointe toujours vers le modèle Flash le plus récent. */
 export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 
 const KEY = "marba:ai-settings:v1";
-const EMPTY: AiSettings = { geminiKey: "", geminiModel: "" };
+const EMPTY: AiSettings = { geminiKey: "", geminiModel: "", voiceName: "", ttsModel: "", speechRate: 1, autoSpeak: false };
 let state: AiSettings = EMPTY;
 let hydrated = false;
 const listeners = new Set<() => void>();
@@ -39,11 +47,12 @@ export function getAiSettings(): AiSettings {
   return read();
 }
 
-export function saveAiSettings(next: AiSettings) {
-  state = { geminiKey: next.geminiKey.trim(), geminiModel: next.geminiModel.trim() };
+export function saveAiSettings(next: Partial<AiSettings>) {
+  state = { ...read(), ...next };
+  state.geminiKey = state.geminiKey.trim();
+  state.geminiModel = state.geminiModel.trim();
   try {
-    if (state.geminiKey || state.geminiModel) window.localStorage.setItem(KEY, JSON.stringify(state));
-    else window.localStorage.removeItem(KEY);
+    window.localStorage.setItem(KEY, JSON.stringify(state));
   } catch {
     /* stockage indisponible : réglage gardé en mémoire */
   }

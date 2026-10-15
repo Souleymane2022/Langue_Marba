@@ -36,6 +36,12 @@ pertinentes, a pour consigne de ne jamais inventer de mot, affiche un **niveau d
 La clé reste sur l'appareil et l'application appelle Google directement depuis le navigateur : cela fonctionne
 **même sur GitHub Pages**, sans serveur. Chaque personne qui veut utiliser l'IA met sa propre clé gratuite.
 
+**Voix.** Avec la clé Gemini, l'assistant **parle** avec une voix naturelle de Google (voix posées au choix : Charon,
+Kore…), et l'on peut **lui parler** au micro (bouton 🎙️ Parler). Le *mode vocal* lit chaque réponse automatiquement et
+envoie la question dès que l'on a fini de parler. Si le quota gratuit de la voix est épuisé, la voix du téléphone prend
+le relais. Aucune voix de synthèse ne connaît encore le Marba : les mots Marba sont prononcés d'après leur orthographe ;
+les enregistrements de locuteurs natifs restent la référence.
+
 Limites de l'offre gratuite : nombre de questions par jour limité, et Google peut utiliser les textes envoyés pour
 améliorer ses services — ne pas y mettre d'informations personnelles (noms de patients, etc.).
 Le modèle par défaut est `gemini-flash-latest` (toujours la version Flash la plus récente) ; on peut en choisir un autre

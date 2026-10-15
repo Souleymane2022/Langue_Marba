@@ -8,6 +8,10 @@ import { AiSettingsPanel } from "@/components/AiSettingsPanel";
 import { SECTORS } from "@/lib/sectors";
 import { addXp } from "@/lib/progress";
 import { Markdown } from "@/components/Markdown";
+import { SpeakButton } from "@/components/SpeakButton";
+import { getAiSettings, useAiSettings } from "@/lib/ai-settings";
+import { useDictation } from "@/lib/dictation";
+import { speak, stopSpeaking } from "@/lib/tts";
 
 interface Msg {
   role: "user" | "assistant";
@@ -34,6 +38,12 @@ function AssistantInner() {
   const ctrl = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const m = AI_MODE_BY_ID.get(mode)!;
+  const settings = useAiSettings();
+  // Dictée : le texte s'écrit pendant que l'on parle ; en mode vocal, la question part toute seule.
+  const dictation = useDictation((text, final) => {
+    setInput(text);
+    if (final && getAiSettings().autoSpeak) void send(text);
+  });
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -50,6 +60,7 @@ function AssistantInner() {
     const q = text.trim();
     if ((!q && !m.sector) || busy) return;
     ctrl.current = new AbortController();
+    stopSpeaking();
     const history = m.chat ? msgs : [];
     const display = q || `(${SECTORS.find((s) => s.id === sector)?.name})`;
     setMsgs([...history, { role: "user", content: display }, { role: "assistant", content: "" }]);
@@ -57,12 +68,13 @@ function AssistantInner() {
     setBusy(true);
     setErr(null);
     try {
-      await streamAi(
+      const answer = await streamAi(
         { mode, input: q, sector: m.sector ? sector : undefined, history },
         (full) => setMsgs((cur) => [...cur.slice(0, -1), { role: "assistant", content: full }]),
         ctrl.current.signal,
       );
       addXp(2);
+      if (getAiSettings().autoSpeak && answer.trim()) void speak(answer, `msg-${history.length + 1}`);
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
         setErr((e as Error).message);
@@ -126,6 +138,11 @@ function AssistantInner() {
             {msgs.map((x, i) => (
               <div key={i} className={`chat-msg ${x.role} ${busy && i === msgs.length - 1 ? "typing" : ""}`}>
                 {x.role === "assistant" ? <Markdown text={x.content || "…"} /> : x.content}
+                {x.role === "assistant" && x.content && !(busy && i === msgs.length - 1) && (
+                  <div style={{ marginTop: 8 }}>
+                    <SpeakButton text={x.content} speakId={`msg-${i}`} />
+                  </div>
+                )}
               </div>
             ))}
             <div ref={bottom} />
@@ -163,7 +180,24 @@ function AssistantInner() {
               }
             }}
           />
+          {dictation.error && <div className="notice err small">{dictation.error}</div>}
           <div className="row">
+            {dictation.supported && (
+              <button
+                type="button"
+                className={`btn ${dictation.listening ? "btn-primary" : ""}`}
+                onClick={() => {
+                  stopSpeaking();
+                  if (dictation.listening) dictation.stop();
+                  else dictation.start();
+                }}
+                disabled={busy}
+                aria-pressed={dictation.listening}
+                title="Parler au lieu d'écrire"
+              >
+                🎙️ {dictation.listening ? "Je vous écoute… (toucher pour finir)" : "Parler"}
+              </button>
+            )}
             <button className="btn btn-primary" type="submit" disabled={busy}>
               {busy ? "L'IA écrit…" : m.chat && msgs.length ? "Envoyer" : "Lancer"}
             </button>
@@ -173,6 +207,7 @@ function AssistantInner() {
               </button>
             )}
             <span className="spacer" />
+            {settings.autoSpeak && <span className="badge">🎧 Mode vocal</span>}
             {msgs.length > 0 && !busy && (
               <>
                 <button

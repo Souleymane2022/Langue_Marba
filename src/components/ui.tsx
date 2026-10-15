@@ -6,6 +6,7 @@ import { shortGloss } from "@/lib/normalize";
 import { toggleFavorite, useProgress } from "@/lib/progress";
 import { deleteRecording, getRecording, saveRecording } from "@/lib/audio-store";
 import type { Entry, Example } from "@/lib/types";
+import { SpeakButton } from "./SpeakButton";
 
 export function Loading({ error }: { error?: string | null }) {
   if (error) return <div className="notice err">Impossible de charger le dictionnaire : {error}</div>;
@@ -50,26 +51,9 @@ export function ExampleView({ ex }: { ex: Example }) {
   );
 }
 
-/** Lecture à voix haute du texte français (aide à la lecture pour les apprenants peu alphabétisés). */
+/** Lecture à voix haute (voix Gemini si une clé est enregistrée, sinon voix du téléphone). */
 export function SpeakFr({ text }: { text: string }) {
-  const [ok, setOk] = useState(false);
-  useEffect(() => setOk(typeof window !== "undefined" && "speechSynthesis" in window), []);
-  if (!ok) return null;
-  return (
-    <button
-      className="icon-btn"
-      title="Écouter en français"
-      onClick={(e) => {
-        e.preventDefault();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = "fr-FR";
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(u);
-      }}
-    >
-      🔊
-    </button>
-  );
+  return <SpeakButton text={text} compact label="Écouter" />;
 }
 
 /**

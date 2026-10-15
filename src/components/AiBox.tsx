@@ -5,6 +5,7 @@ import Link from "next/link";
 import { streamAi, useAiAvailable } from "@/lib/ai-client";
 import type { AiModeId } from "@/lib/ai-modes";
 import { Markdown } from "./Markdown";
+import { SpeakButton } from "./SpeakButton";
 
 /** Bouton « demander à l'IA » réutilisable (explication d'un mot, d'un proverbe, dialogue de secteur…). */
 export function AiBox({
@@ -60,6 +61,11 @@ export function AiBox({
       {(text || busy) && (
         <div className={`card ${busy ? "typing" : ""}`}>
           <Markdown text={text || "…"} />
+          {text && !busy && (
+            <div className="no-print" style={{ marginTop: 8 }}>
+              <SpeakButton text={text} />
+            </div>
+          )}
         </div>
       )}
     </div>

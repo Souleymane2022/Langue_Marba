@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { SERVER_AI_AVAILABLE } from "@/lib/ai-client";
 import { DEFAULT_GEMINI_MODEL, saveAiSettings, useAiSettings } from "@/lib/ai-settings";
+import { DEFAULT_VOICE, GEMINI_VOICES, TTS_MODELS } from "@/lib/tts";
+import { SpeakButton } from "./SpeakButton";
+
+const VOICE_SAMPLE =
+  "Bonjour et bienvenue sur Vun Marbana. Je suis votre assistant pour apprendre la langue marba. Par exemple, le mot asine signifie : le champ.";
 
 const listGeminiModels = async (key: string) => (await import("@/lib/gemini")).listGeminiModels(key);
 
@@ -118,6 +123,56 @@ export function AiSettingsPanel() {
           )}
 
           {status && <div className={`notice ${status.ok ? "ok" : "err"}`}>{status.msg}</div>}
+
+          <div className="stack" style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+            <strong>🔊 Voix</strong>
+            {settings.geminiKey ? (
+              <>
+                <label className="field">
+                  Voix de l&apos;assistant (Gemini)
+                  <select className="select" value={settings.voiceName || DEFAULT_VOICE} onChange={(e) => saveAiSettings({ voiceName: e.target.value })}>
+                    {GEMINI_VOICES.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Modèle vocal
+                  <select className="select" value={settings.ttsModel} onChange={(e) => saveAiSettings({ ttsModel: e.target.value })}>
+                    <option value="">Automatique (meilleure qualité disponible)</option>
+                    {TTS_MODELS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : (
+              <p className="small muted" style={{ margin: 0 }}>
+                Sans clé Gemini, la voix du téléphone est utilisée. Avec la clé, l&apos;assistant parle avec une voix naturelle de Google.
+              </p>
+            )}
+            <label className="field">
+              Vitesse de lecture
+              <select className="select" value={String(settings.speechRate || 1)} onChange={(e) => saveAiSettings({ speechRate: Number(e.target.value) })}>
+                <option value="0.85">Lente (apprentissage)</option>
+                <option value="1">Normale</option>
+                <option value="1.15">Rapide</option>
+              </select>
+            </label>
+            <label className="row small" style={{ cursor: "pointer" }}>
+              <input type="checkbox" checked={settings.autoSpeak} onChange={(e) => saveAiSettings({ autoSpeak: e.target.checked })} />
+              Mode vocal : lire automatiquement chaque réponse, et envoyer la question dès que j&apos;ai fini de parler
+            </label>
+            <SpeakButton text={VOICE_SAMPLE} label="Tester la voix" />
+            <p className="small muted" style={{ margin: 0 }}>
+              Le français est lu avec une voix naturelle. Aucune voix de synthèse ne connaît encore le Marba : les mots Marba sont
+              prononcés d&apos;après leur orthographe. Les enregistrements de locuteurs natifs restent la référence.
+            </p>
+          </div>
 
           <p className="small muted" style={{ margin: 0 }}>
             🔒 La clé reste uniquement sur cet appareil (elle n&apos;est envoyée qu&apos;à Google). Ne l&apos;enregistrez pas sur un téléphone
