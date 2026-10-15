@@ -2,7 +2,7 @@ import { shortGloss } from "./normalize.ts";
 import { search, searchExamples, type SearchIndex } from "./search.ts";
 import { SECTOR_BY_ID, sectorEntries, sectorPhrases } from "./sectors.ts";
 import { tokens, FR_STOPWORDS } from "./normalize.ts";
-import type { AiModeId } from "./ai-modes.ts";
+import { AI_MODE_BY_ID, MAX_HISTORY, MAX_INPUT, type AiModeId, type AiRequestBody } from "./ai-modes.ts";
 import type { Entry, Proverb } from "./types.ts";
 
 /**
@@ -123,4 +123,39 @@ const TASKS: Record<AiModeId, (input: string, sectorName?: string) => string> = 
 
 export function buildUserMessage(mode: AiModeId, input: string, context: string, sectorName?: string): string {
   return `${context ? `${context}\n\n` : ""}DEMANDE\n${TASKS[mode](input, sectorName)}`;
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export type PreparedRequest = { ok: true; messages: ChatTurn[] } | { ok: false; error: string; status: number };
+
+/**
+ * Valide une demande et construit la conversation à envoyer au modèle,
+ * quel que soit le fournisseur d'IA (Claude ou Gemini, serveur ou navigateur).
+ */
+export function prepareRequest(ctx: PromptContext, body: Partial<AiRequestBody>): PreparedRequest {
+  const mode = body.mode ? AI_MODE_BY_ID.get(body.mode) : undefined;
+  if (!mode) return { ok: false, error: "Fonction inconnue.", status: 400 };
+  const input = typeof body.input === "string" ? body.input.trim().slice(0, MAX_INPUT) : "";
+  if (!input && !mode.sector) return { ok: false, error: "Écrivez votre demande.", status: 400 };
+  const sector = body.sector ? SECTOR_BY_ID.get(body.sector) : undefined;
+
+  const history: ChatTurn[] = [];
+  if (mode.chat && Array.isArray(body.history)) {
+    for (const m of body.history.slice(-MAX_HISTORY)) {
+      if ((m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim()) {
+        history.push({ role: m.role, content: m.content.slice(0, 6000) });
+      }
+    }
+    while (history.length && history[0].role !== "user") history.shift();
+  }
+
+  const context = retrieveContext(ctx, `${input} ${sector?.name ?? ""}`.trim(), sector?.id);
+  return {
+    ok: true,
+    messages: [...history, { role: "user", content: buildUserMessage(mode.id, input, context, sector?.name) }],
+  };
 }

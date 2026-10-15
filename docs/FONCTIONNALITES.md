@@ -62,7 +62,7 @@ Légende : ✅ disponible dans cette version · 🔜 prévu (feuille de route)
 - ✅ Générateur d'exercices corrigés
 - 🔜 Glossaires techniques validés (termes médicaux, juridiques, agricoles nouveaux)
 
-## 4. Assistant IA (Claude)
+## 4. Assistant IA (Gemini gratuit ou Claude)
 10 fonctions, toutes **ancrées dans le dictionnaire** :
 
 | Fonction | Rôle |
@@ -77,6 +77,10 @@ Légende : ✅ disponible dans cette version · 🔜 prévu (feuille de route)
 | 🏫 Fiche pédagogique | plan de cours minuté |
 | 🪶 Expliquer un proverbe | sens littéral, leçon, usage, équivalent français |
 | 🔤 Grammaire | explications illustrées par des phrases attestées |
+
+Fournisseurs :
+- ✅ **Gemini (Google) avec une clé gratuite** saisie par l'utilisateur : fonctionne directement depuis le téléphone, même sur GitHub Pages
+- ✅ Gemini ou Claude (Anthropic) côté serveur, avec la clé du propriétaire du site
 
 Garde-fous :
 - ✅ Le lexique complet (2 230 mots) est fourni au modèle à chaque requête (mis en cache), plus les fiches et phrases authentiques les plus pertinentes

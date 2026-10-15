@@ -22,10 +22,24 @@ Elle est construite à partir du *Dictionnaire Marba* (Akaki) : **2 230 mots, 3 
 
 ## L'IA, honnêtement
 
-Le Marba est une langue peu documentée : aucun modèle d'IA ne la connaît vraiment. L'assistant (Claude, d'Anthropic)
+Le Marba est une langue peu documentée : aucun modèle d'IA ne la connaît vraiment. L'assistant (Gemini de Google — clé gratuite — ou Claude d'Anthropic)
 est donc **ancré dans le dictionnaire** : il reçoit à chaque requête le lexique complet et les phrases authentiques les plus
 pertinentes, a pour consigne de ne jamais inventer de mot, affiche un **niveau de confiance** (🟢 attesté, 🟡 assemblé,
 🔴 incertain) et rappelle de faire valider par un locuteur natif tout texte destiné au public (santé, justice, radio).
+
+### Activer l'IA gratuitement avec Gemini
+
+1. Ouvrir https://aistudio.google.com/apikey, se connecter avec un compte Google, cliquer sur **Create API key**
+   (gratuit, sans carte bancaire) et copier la clé.
+2. Dans l'application : **Assistant IA → ⚙️ Réglages de l'IA**, coller la clé, **Enregistrer**.
+
+La clé reste sur l'appareil et l'application appelle Google directement depuis le navigateur : cela fonctionne
+**même sur GitHub Pages**, sans serveur. Chaque personne qui veut utiliser l'IA met sa propre clé gratuite.
+
+Limites de l'offre gratuite : nombre de questions par jour limité, et Google peut utiliser les textes envoyés pour
+améliorer ses services — ne pas y mettre d'informations personnelles (noms de patients, etc.).
+Le modèle par défaut est `gemini-flash-latest` (toujours la version Flash la plus récente) ; on peut en choisir un autre
+dans les réglages.
 
 ## Démarrer
 
@@ -33,11 +47,11 @@ Prérequis : Node.js 20+ (et Python 3 uniquement pour régénérer les données)
 
 ```bash
 npm install
-cp .env.example .env.local      # puis renseigner ANTHROPIC_API_KEY
+cp .env.example .env.local      # facultatif : GEMINI_API_KEY ou ANTHROPIC_API_KEY
 npm run dev                     # http://localhost:3000
 ```
 
-Sans clé API, tout fonctionne sauf l'assistant IA (dictionnaire, leçons, quiz, traduction mot à mot, proverbes).
+Sans clé côté serveur, tout fonctionne ; l'assistant IA s'active alors avec une clé Gemini personnelle dans les réglages.
 
 ```bash
 npm test          # tests unitaires (recherche, révision espacée, quiz, secteurs, contexte IA)
@@ -54,16 +68,18 @@ Adresse : **https://souleymane2022.github.io/Langue_Marba/**
    (onglet **Actions** pour suivre ; bouton **Run workflow** pour relancer à la main).
 
 GitHub Pages n'héberge que des fichiers statiques : tout fonctionne (dictionnaire, leçons, quiz, secteurs, proverbes,
-traduction mot à mot, mode hors-ligne) **sauf l'assistant IA**, qui a besoin d'un serveur pour garder la clé API secrète.
-Pour l'activer quand même :
+traduction mot à mot, mode hors-ligne). L'assistant IA y fonctionne avec la **clé Gemini gratuite** de chaque
+utilisateur (voir plus haut).
+
+Pour offrir l'IA à tous sans qu'ils aient besoin d'une clé, il faut un serveur qui garde **votre** clé secrète :
 
 1. Déployer aussi l'application sur un hébergeur Node.js (par exemple Vercel, gratuit) avec les variables
-   `ANTHROPIC_API_KEY` et `AI_ALLOWED_ORIGINS=https://souleymane2022.github.io`.
+   `GEMINI_API_KEY` (ou `ANTHROPIC_API_KEY`) et `AI_ALLOWED_ORIGINS=https://souleymane2022.github.io`.
 2. Sur GitHub : **Settings → Secrets and variables → Actions → Variables → New repository variable**
    `AI_ENDPOINT` = `https://<votre-projet>.vercel.app/api/ai/`
 3. Relancer le workflow : la version GitHub Pages utilisera cette API.
 
-⚠️ Ne jamais mettre la clé `ANTHROPIC_API_KEY` dans GitHub Pages ni dans le code : elle serait visible de tous.
+⚠️ Ne jamais mettre votre clé (Gemini ou Anthropic) dans GitHub Pages ni dans le code : elle serait visible de tous.
 
 Pour tester la version statique en local :
 
@@ -98,8 +114,9 @@ src/lib/
   srs.ts, quiz.ts             révision espacée (SM-2) et génération de quiz
   translate.ts                traduction mot à mot hors-ligne
   ai-modes.ts, ai-prompt.ts   fonctions de l'assistant, prompt et recherche de contexte
+  gemini.ts, ai-client.ts     appel de Gemini (serveur ou navigateur) / choix clé personnelle ou serveur
   progress.ts, audio-store.ts progression (localStorage) et enregistrements (IndexedDB)
-src/app/api/ai/route.ts       API de l'assistant (Claude, réponses en streaming)
+src/app/api/ai/route.ts       API de l'assistant (Gemini ou Claude, réponses en streaming)
 src/app/…                     pages de l'application
 public/sw.js                  service worker (mode hors-ligne)
 tests/                        tests unitaires

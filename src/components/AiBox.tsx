@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { streamAi } from "@/lib/ai-client";
+import Link from "next/link";
+import { streamAi, useAiAvailable } from "@/lib/ai-client";
 import type { AiModeId } from "@/lib/ai-modes";
 import { Markdown } from "./Markdown";
 
@@ -21,6 +22,7 @@ export function AiBox({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const ctrl = useRef<AbortController | null>(null);
+  const available = useAiAvailable();
 
   async function run() {
     ctrl.current?.abort();
@@ -49,6 +51,11 @@ export function AiBox({
           </button>
         )}
       </div>
+      {!available && (
+        <p className="small muted no-print" style={{ margin: 0 }}>
+          Pour utiliser l&apos;IA, ajoutez votre clé Gemini gratuite dans les <Link href="/assistant">réglages de l&apos;assistant</Link>.
+        </p>
+      )}
       {err && <div className="notice err">{err}</div>}
       {(text || busy) && (
         <div className={`card ${busy ? "typing" : ""}`}>

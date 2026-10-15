@@ -1,10 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import dictionary from "@/data/dictionary.json";
 import proverbs from "@/data/proverbs.json";
-import { AI_MODE_BY_ID, MAX_HISTORY, MAX_INPUT, type AiRequestBody } from "@/lib/ai-modes";
-import { INSTRUCTIONS, buildLexicon, buildUserMessage, retrieveContext } from "@/lib/ai-prompt";
+import type { AiRequestBody } from "@/lib/ai-modes";
+import { INSTRUCTIONS, buildLexicon, prepareRequest } from "@/lib/ai-prompt";
+import { streamGemini } from "@/lib/gemini";
 import { buildIndex } from "@/lib/search";
-import { SECTOR_BY_ID } from "@/lib/sectors";
 import type { Dictionary, Proverb } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -14,8 +14,21 @@ export const maxDuration = 120;
 const MODEL = "claude-opus-5-5";
 const dict = dictionary as unknown as Dictionary;
 const ctx = { index: buildIndex(dict.entries), entries: dict.entries, proverbs: proverbs as Proverb[] };
-// Préfixe stable (instructions + lexique complet) : mis en cache côté API pour réduire coût et latence.
+// Préfixe stable (instructions + lexique complet) : mis en cache par le fournisseur pour réduire coût et latence.
 const LEXICON = buildLexicon(dict.entries);
+
+/**
+ * Fournisseur d'IA côté serveur : Gemini (clé gratuite Google AI Studio) ou Claude (Anthropic).
+ * AI_PROVIDER force le choix ; sinon Gemini si GEMINI_API_KEY est défini, puis Claude.
+ */
+function aiProvider(): "gemini" | "anthropic" | null {
+  const forced = process.env.AI_PROVIDER;
+  if (forced === "gemini" && process.env.GEMINI_API_KEY) return "gemini";
+  if (forced === "anthropic" && (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN)) return "anthropic";
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  if (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) return "anthropic";
+  return null;
+}
 
 let client: Anthropic | null = null;
 function getClient() {
@@ -75,9 +88,10 @@ export async function POST(req: Request) {
     return error("Origine non autorisée.", 403);
   }
 
-  if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+  const provider = aiProvider();
+  if (!provider) {
     return error(
-      "L'assistant IA n'est pas encore configuré sur ce serveur (variable ANTHROPIC_API_KEY manquante). Le dictionnaire, les leçons et la traduction mot à mot restent disponibles.",
+      "L'assistant IA n'est pas encore configuré sur ce serveur (variable GEMINI_API_KEY ou ANTHROPIC_API_KEY manquante). Le dictionnaire, les leçons et la traduction mot à mot restent disponibles.",
       503,
     );
   }
@@ -90,27 +104,39 @@ export async function POST(req: Request) {
   } catch {
     return error("Requête invalide.", 400);
   }
-  const mode = AI_MODE_BY_ID.get(body.mode);
-  const input = typeof body.input === "string" ? body.input.trim().slice(0, MAX_INPUT) : "";
-  if (!mode) return error("Fonction inconnue.", 400);
-  if (!input && !mode.sector) return error("Écrivez votre demande.", 400);
-  const sector = body.sector ? SECTOR_BY_ID.get(body.sector) : undefined;
+  const prepared = prepareRequest(ctx, body);
+  if (!prepared.ok) return error(prepared.error, prepared.status);
+  const headers = { ...cors, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+  const encoder = new TextEncoder();
 
-  const history: Anthropic.Beta.BetaMessageParam[] = [];
-  if (mode.chat && Array.isArray(body.history)) {
-    for (const m of body.history.slice(-MAX_HISTORY)) {
-      if ((m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim()) {
-        history.push({ role: m.role, content: m.content.slice(0, 6000) });
-      }
-    }
-    while (history.length && history[0].role !== "user") history.shift();
+  if (provider === "gemini") {
+    const abort = new AbortController();
+    const readable = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          await streamGemini({
+            apiKey: process.env.GEMINI_API_KEY!,
+            model: process.env.GEMINI_MODEL,
+            system: `${INSTRUCTIONS}\n\n${LEXICON}`,
+            messages: prepared.messages,
+            signal: abort.signal,
+            onText: (t) => controller.enqueue(encoder.encode(t)),
+          });
+        } catch (err) {
+          console.error("[api/ai gemini]", err);
+          if ((err as Error).name !== "AbortError") controller.enqueue(encoder.encode(`\n\n⚠️ ${(err as Error).message}`));
+        } finally {
+          controller.close();
+        }
+      },
+      cancel() {
+        abort.abort();
+      },
+    });
+    return new Response(readable, { headers });
   }
 
-  const context = retrieveContext(ctx, `${input} ${sector?.name ?? ""}`.trim(), sector?.id);
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
-    ...history,
-    { role: "user", content: buildUserMessage(mode.id, input, context, sector?.name) },
-  ];
+  const messages: Anthropic.Beta.BetaMessageParam[] = prepared.messages;
 
   const stream = getClient().beta.messages.stream({
     model: MODEL,
@@ -125,7 +151,6 @@ export async function POST(req: Request) {
     messages,
   });
 
-  const encoder = new TextEncoder();
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
@@ -157,7 +182,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return new Response(readable, {
-    headers: { ...cors, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
-  });
+  return new Response(readable, { headers });
 }

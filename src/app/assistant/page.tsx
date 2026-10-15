@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AI_MODES, AI_MODE_BY_ID, MAX_INPUT, type AiModeId } from "@/lib/ai-modes";
-import { AI_AVAILABLE, streamAi } from "@/lib/ai-client";
+import { streamAi } from "@/lib/ai-client";
+import { AiSettingsPanel } from "@/components/AiSettingsPanel";
 import { SECTORS } from "@/lib/sectors";
 import { addXp } from "@/lib/progress";
 import { Markdown } from "@/components/Markdown";
@@ -76,16 +77,11 @@ function AssistantInner() {
     <div className="stack">
       <h1>✨ Assistant IA</h1>
       <p className="muted small">
-        L&apos;assistant s&apos;appuie sur le dictionnaire Marba (2 230 mots, 3 246 phrases, 339 proverbes) et indique toujours son niveau
+        L&apos;assistant (Gemini ou Claude) s&apos;appuie sur le dictionnaire Marba (2 230 mots, 3 246 phrases, 339 proverbes) et indique toujours son niveau
         de confiance. Le Marba est une langue peu documentée : faites valider les phrases importantes par un locuteur natif.
       </p>
 
-      {!AI_AVAILABLE && (
-        <div className="notice">
-          L&apos;assistant IA n&apos;est pas encore activé sur cette version en ligne. En attendant, utilisez le dictionnaire, les leçons
-          et la traduction mot à mot (hors-ligne).
-        </div>
-      )}
+      <AiSettingsPanel />
       <div className="grid-sm mode-grid">
         {AI_MODES.map((x) => (
           <button

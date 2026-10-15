@@ -8,7 +8,7 @@ import { buildQuiz, findClozeExample } from "../src/lib/quiz.ts";
 import { SECTORS, SECTOR_BY_ID, entryInSector, sectorEntries } from "../src/lib/sectors.ts";
 import { buildCourses, LESSON_SIZE } from "../src/lib/lessons.ts";
 import { marbaToFrench, frenchToMarba } from "../src/lib/translate.ts";
-import { buildLexicon, retrieveContext } from "../src/lib/ai-prompt.ts";
+import { buildLexicon, prepareRequest, retrieveContext } from "../src/lib/ai-prompt.ts";
 import type { Dictionary, Proverb } from "../src/lib/types.ts";
 
 const dict = JSON.parse(readFileSync(new URL("../public/data/dictionary.json", import.meta.url), "utf8")) as Dictionary;
@@ -105,4 +105,29 @@ test("IA : lexique complet et contexte pertinent", () => {
   assert.match(ctx, /■ Aca/);
   assert.match(ctx, /PHRASES AUTHENTIQUES/);
   assert.match(ctx, /SECTEUR : Alimentation/);
+});
+
+test("IA : préparation des demandes, quel que soit le fournisseur", () => {
+  const ctx = { index, entries: dict.entries, proverbs };
+  assert.deepEqual(prepareRequest(ctx, { mode: "inconnu" as never, input: "x" }), { ok: false, error: "Fonction inconnue.", status: 400 });
+  assert.equal(prepareRequest(ctx, { mode: "traduire-fr", input: "  " }).ok, false);
+  // un secteur suffit pour les modes « secteur »
+  assert.equal(prepareRequest(ctx, { mode: "dialogue", input: "", sector: "sante" }).ok, true);
+  const chat = prepareRequest(ctx, {
+    mode: "tuteur",
+    input: "Et pour dire bonsoir ?",
+    history: [
+      { role: "assistant", content: "message orphelin ignoré" },
+      { role: "user", content: "Comment saluer ?" },
+      { role: "assistant", content: "On dit…" },
+    ],
+  });
+  assert.ok(chat.ok);
+  if (chat.ok) {
+    assert.deepEqual(chat.messages.map((m) => m.role), ["user", "assistant", "user"], "commence par l'utilisateur");
+    assert.match(chat.messages.at(-1)!.content, /DEMANDE/);
+  }
+  // l'historique n'est conservé que pour le tuteur
+  const single = prepareRequest(ctx, { mode: "traduire-fr", input: "eau", history: [{ role: "user", content: "x" }] });
+  assert.ok(single.ok && single.messages.length === 1);
 });
