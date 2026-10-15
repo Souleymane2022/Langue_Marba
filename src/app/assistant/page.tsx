@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AI_MODES, AI_MODE_BY_ID, MAX_INPUT, type AiModeId } from "@/lib/ai-modes";
-import { streamAi } from "@/lib/ai-client";
+import { AI_AVAILABLE, streamAi } from "@/lib/ai-client";
 import { SECTORS } from "@/lib/sectors";
 import { addXp } from "@/lib/progress";
 import { Markdown } from "@/components/Markdown";
@@ -80,6 +80,12 @@ function AssistantInner() {
         de confiance. Le Marba est une langue peu documentée : faites valider les phrases importantes par un locuteur natif.
       </p>
 
+      {!AI_AVAILABLE && (
+        <div className="notice">
+          L&apos;assistant IA n&apos;est pas encore activé sur cette version en ligne. En attendant, utilisez le dictionnaire, les leçons
+          et la traduction mot à mot (hors-ligne).
+        </div>
+      )}
       <div className="grid-sm mode-grid">
         {AI_MODES.map((x) => (
           <button

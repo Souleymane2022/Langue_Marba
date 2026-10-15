@@ -113,6 +113,7 @@ Garde-fous :
 
 ## 9. Accessibilité et contexte local
 - ✅ Application web installable (PWA) sur téléphone Android/iPhone, sans passer par un store
+- ✅ Publication automatique et gratuite sur GitHub Pages (souleymane2022.github.io/Langue_Marba)
 - ✅ **Fonctionne hors-ligne** : dictionnaire, leçons, quiz, proverbes, traduction mot à mot
 - ✅ Données légères (≈ 0,8 Mo pour tout le dictionnaire)
 - ✅ Interface en français simple, gros boutons, icônes, mode sombre, lecture vocale

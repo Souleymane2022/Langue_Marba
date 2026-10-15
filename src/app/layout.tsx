@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { BottomNav, ServiceWorker, TopBar } from "@/components/Nav";
+import { withBase } from "@/lib/base-path";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "Vun Marbana — apprendre la langue Marba", template: "%s · Vun Marbana" },
   description:
     "Dictionnaire Marba–Français, leçons, quiz, vocabulaire par secteur (santé, agriculture, éducation…) et assistant IA pour apprendre et utiliser la langue Marba du Tchad.",
-  manifest: "/manifest.webmanifest",
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  manifest: withBase("/manifest.webmanifest"),
+  icons: { icon: withBase("/icon.svg"), apple: withBase("/icon.svg") },
   applicationName: "Vun Marbana",
 };
 

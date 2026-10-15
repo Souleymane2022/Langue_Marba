@@ -34,11 +34,47 @@ function rateLimited(ip: string): boolean {
   return recent.length > LIMIT;
 }
 
-function error(message: string, status: number) {
-  return Response.json({ error: message }, { status });
+// Origines autorisées à appeler l'API depuis un autre site (ex. la version GitHub Pages) :
+// AI_ALLOWED_ORIGINS=https://souleymane2022.github.io
+const ALLOWED_ORIGINS = (process.env.AI_ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin");
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+}
+
+function isSameHost(origin: string, req: Request): boolean {
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  try {
+    return !!host && new URL(origin).host === host;
+  } catch {
+    return false; // Origin « null » ou mal formée
+  }
+}
+
+export function OPTIONS(req: Request) {
+  return new Response(null, { status: 204, headers: corsHeaders(req) });
 }
 
 export async function POST(req: Request) {
+  const cors = corsHeaders(req);
+  const error = (message: string, status: number) => Response.json({ error: message }, { status, headers: cors });
+  // Un autre site non autorisé ne peut pas consommer le crédit IA (le navigateur bloquerait la réponse, mais l'appel serait facturé).
+  const origin = req.headers.get("origin");
+  if (origin && !cors["Access-Control-Allow-Origin"] && !isSameHost(origin, req)) {
+    return error("Origine non autorisée.", 403);
+  }
+
   if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
     return error(
       "L'assistant IA n'est pas encore configuré sur ce serveur (variable ANTHROPIC_API_KEY manquante). Le dictionnaire, les leçons et la traduction mot à mot restent disponibles.",
@@ -122,6 +158,6 @@ export async function POST(req: Request) {
   });
 
   return new Response(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+    headers: { ...cors, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
   });
 }

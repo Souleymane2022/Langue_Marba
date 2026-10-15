@@ -45,7 +45,33 @@ npm run typecheck
 npm run build && npm start
 ```
 
-### Déploiement
+### Publication sur GitHub Pages (gratuit)
+
+Adresse : **https://souleymane2022.github.io/Langue_Marba/**
+
+1. Sur GitHub : **Settings → Pages → Build and deployment → Source : « GitHub Actions »** (une seule fois).
+2. C'est tout : à chaque `git push`, le workflow `.github/workflows/github-pages.yml` teste, construit et publie le site
+   (onglet **Actions** pour suivre ; bouton **Run workflow** pour relancer à la main).
+
+GitHub Pages n'héberge que des fichiers statiques : tout fonctionne (dictionnaire, leçons, quiz, secteurs, proverbes,
+traduction mot à mot, mode hors-ligne) **sauf l'assistant IA**, qui a besoin d'un serveur pour garder la clé API secrète.
+Pour l'activer quand même :
+
+1. Déployer aussi l'application sur un hébergeur Node.js (par exemple Vercel, gratuit) avec les variables
+   `ANTHROPIC_API_KEY` et `AI_ALLOWED_ORIGINS=https://souleymane2022.github.io`.
+2. Sur GitHub : **Settings → Secrets and variables → Actions → Variables → New repository variable**
+   `AI_ENDPOINT` = `https://<votre-projet>.vercel.app/api/ai/`
+3. Relancer le workflow : la version GitHub Pages utilisera cette API.
+
+⚠️ Ne jamais mettre la clé `ANTHROPIC_API_KEY` dans GitHub Pages ni dans le code : elle serait visible de tous.
+
+Pour tester la version statique en local :
+
+```bash
+GITHUB_PAGES=true BASE_PATH=/Langue_Marba npm run build   # (retirer d'abord src/app/api, comme le fait le workflow)
+```
+
+### Déploiement sur un serveur Node.js
 N'importe quel hébergeur Node.js (Vercel, Render, Railway, VPS…). Définir la variable d'environnement
 `ANTHROPIC_API_KEY` (et optionnellement `AI_RATE_LIMIT_PER_HOUR`, 60 par défaut). Une fois le site ouvert sur un
 téléphone, « Ajouter à l'écran d'accueil » l'installe comme une application ; le contenu est alors disponible hors-ligne.

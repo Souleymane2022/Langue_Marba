@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { withBase } from "./base-path.ts";
 import { buildIndex, type SearchIndex } from "./search.ts";
 import { buildCourses, type Course } from "./lessons.ts";
 import type { Dictionary, Proverb } from "./types.ts";
@@ -19,11 +20,11 @@ let loaded: AppData | null = null;
 export function loadData(): Promise<AppData> {
   if (!pending) {
     pending = Promise.all([
-      fetch("/data/dictionary.json").then((r) => {
+      fetch(withBase("/data/dictionary.json")).then((r) => {
         if (!r.ok) throw new Error(`dictionnaire indisponible (${r.status})`);
         return r.json() as Promise<Dictionary>;
       }),
-      fetch("/data/proverbs.json").then((r) => (r.ok ? (r.json() as Promise<Proverb[]>) : [])),
+      fetch(withBase("/data/proverbs.json")).then((r) => (r.ok ? (r.json() as Promise<Proverb[]>) : [])),
     ])
       .then(([dict, proverbs]) => {
         loaded = { dict, proverbs, index: buildIndex(dict.entries), courses: buildCourses(dict.entries) };

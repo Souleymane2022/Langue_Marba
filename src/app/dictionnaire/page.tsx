@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-client";
@@ -118,8 +119,8 @@ function DictionaryInner() {
         <div className="card" style={{ padding: "4px 12px" }}>
           {results.length === 0 && (
             <p className="muted" style={{ padding: 12 }}>
-              Aucun résultat. Essayez un autre mot, ou demandez à l&apos;<a href={`/assistant?mode=traduire-fr&q=${encodeURIComponent(q)}`}>assistant IA</a>. Ce mot
-              manque ? <a href="/contribuer">Proposez-le</a>.
+              Aucun résultat. Essayez un autre mot, ou demandez à l&apos;<Link href={`/assistant?mode=traduire-fr&q=${encodeURIComponent(q)}`}>assistant IA</Link>. Ce mot
+              manque ? <Link href="/contribuer">Proposez-le</Link>.
             </p>
           )}
           {results.slice(0, limit).map((e) => (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { withBase } from "@/lib/base-path";
 
 const MAIN = [
   { href: "/", label: "Accueil", icon: "🏠" },
@@ -71,7 +72,7 @@ export function BottomNav() {
 export function ServiceWorker() {
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/") }).catch(() => {});
     }
   }, []);
   return null;

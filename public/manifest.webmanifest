@@ -3,11 +3,12 @@
   "short_name": "Vun Marbana",
   "description": "Dictionnaire, leçons, secteurs de base et assistant IA pour la langue Marba du Tchad.",
   "lang": "fr",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#faf6ef",
   "theme_color": "#b4532a",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }

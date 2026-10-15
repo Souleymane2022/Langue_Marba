@@ -1,0 +1,67 @@
+# Publie l'application sur GitHub Pages à chaque mise à jour du code :
+# https://souleymane2022.github.io/Langue_Marba/
+#
+# Prérequis (une seule fois) : Settings → Pages → Source : « GitHub Actions ».
+# Optionnel : pour activer l'assistant IA sur cette version, créer la variable
+# Settings → Secrets and variables → Actions → Variables → AI_ENDPOINT
+# (adresse d'une API déployée ailleurs, ex. https://langue-marba.vercel.app/api/ai/).
+name: Publier sur GitHub Pages
+
+on:
+  push:
+    branches: [ccr-6192837d-23r9ry, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Construire le site statique
+        # L'API de l'assistant ne peut pas tourner sur GitHub Pages (pas de serveur) : on la retire du site statique.
+        run: |
+          rm -rf src/app/api
+          npm run build
+          touch out/.nojekyll
+        env:
+          GITHUB_PAGES: "true"
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          NEXT_PUBLIC_AI_ENDPOINT: ${{ vars.AI_ENDPOINT }}
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

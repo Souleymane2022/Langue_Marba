@@ -1,8 +1,12 @@
 /* Service worker : rend l'application utilisable hors-ligne
  * (dictionnaire, leçons, quiz, proverbes). L'assistant IA nécessite Internet. */
-const CACHE = "vun-marbana-v1";
-const CORE = ["/", "/dictionnaire", "/apprendre", "/secteurs", "/traduire", "/proverbes", "/alphabet", "/progres", "/contribuer",
-  "/data/dictionary.json", "/data/proverbs.json", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "vun-marbana-v2";
+// Chemins relatifs à la portée du service worker : fonctionne à la racine
+// d'un domaine comme dans un sous-dossier (GitHub Pages : /Langue_Marba/).
+const SCOPE = new URL(self.registration.scope);
+const BASE = SCOPE.pathname.replace(/\/$/, "");
+const CORE = ["", "dictionnaire/", "apprendre/", "secteurs/", "traduire/", "proverbes/", "alphabet/", "progres/", "contribuer/",
+  "data/dictionary.json", "data/proverbs.json", "manifest.webmanifest", "icon.svg"].map((p) => new URL(p, SCOPE).href);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -17,10 +21,11 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
-  if (req.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (req.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith(`${BASE}/api/`)) return;
+  const path = url.pathname.slice(BASE.length);
 
   // Données et ressources statiques : cache d'abord, mise à jour en arrière-plan.
-  if (url.pathname.startsWith("/data/") || url.pathname.startsWith("/_next/static/") || url.pathname.endsWith(".svg")) {
+  if (path.startsWith("/data/") || path.startsWith("/_next/static/") || path.endsWith(".svg")) {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
         const cached = await cache.match(req);
@@ -45,7 +50,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((c) => c.put(req, copy));
           return res;
         })
-        .catch(async () => (await caches.match(req)) || (await caches.match("/")) || Response.error()),
+        .catch(async () => (await caches.match(req)) || (await caches.match(SCOPE.href)) || Response.error()),
     );
   }
 });
